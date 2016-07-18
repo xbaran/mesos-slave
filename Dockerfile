@@ -7,12 +7,14 @@
 # Description:
 # Mesos slave container with docker-engine installed. With Docker moving away
 # from a monolithic binary, docker-engine must now be installed within the
-# container itself. 
+# container itself.
+# Former author
+# MAINTAINER Bob Killen / killen.bob@gmail.com / @mrbobbytables
 ################################################################################
 
-FROM mrbobbytables/mesos-base:1.2.1
+FROM pixelfederation/mesos-base:1.2.1
 
-MAINTAINER Bob Killen / killen.bob@gmail.com / @mrbobbytables
+MAINTAINER Milan Baran / mbaran@pixelfederation.com / @mbaran
 
 
 ENV VERSION_DOCKER=1.11.2-0~trusty
