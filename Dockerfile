@@ -1,8 +1,8 @@
 ################################################################################
-# mesos-slave:1.2.1
-# Date: 07/14/2016
-# Docker Version: 1.11.2-0~trusty
-# Mesos Version: 0.28.2-2.0.27.ubuntu1404
+# mesos-slave:1.3.0
+# Date: 02/20/2017
+# Docker Version: 1.12.1-0~trusty
+# Mesos Version: 1.1.0-2.0.107.ubuntu1404
 #
 # Description:
 # Mesos slave container with docker-engine installed. With Docker moving away
@@ -12,12 +12,12 @@
 # MAINTAINER Bob Killen / killen.bob@gmail.com / @mrbobbytables
 ################################################################################
 
-FROM pixelfederation/mesos-base:1.2.1
+FROM pixelfederation/mesos-base:1.3.0
 
 MAINTAINER Milan Baran / mbaran@pixelfederation.com / @mbaran
 
 
-ENV VERSION_DOCKER=1.11.2-0~trusty
+ENV VERSION_DOCKER=1.12.1-0~trusty
 
 RUN apt-get update                           \
  && apt-get -y install apt-transport-https   \

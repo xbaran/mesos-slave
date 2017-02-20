@@ -5,9 +5,9 @@ An Ubuntu based Mesos Slave container, packaged with Logstash-Forwarder and mana
 
 ##### Version Information:
 
-* **Container Release:** 1.2.1
-* **Mesos:**  0.28.2-2.0.27.ubuntu1404
-* **Docker:** 1.11.2-0~trusty
+* **Container Release:** 1.3.0
+* **Mesos:**  1.1.0-2.0.107.ubuntu1404
+* **Docker:** 1.12.1-0~trusty
 
 
 **Services Include:**
