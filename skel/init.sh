@@ -13,16 +13,21 @@ init_vars() {
   fi 
 
   if [[ ! $PARENT_HOST && $HOST ]]; then
-    export PARENT_HOST="$HOST"
+    export PARENT_HOST=${HOST:-`hostname -I | cut -d' ' -f1`}
   fi
 
   export APP_NAME=${APP_NAME:-mesos-slave}
   export ENVIRONMENT=${ENVIRONMENT:-local} 
-  export PARENT_HOST=${PARENT_HOST:-unknown}
+  export PARENT_HOST=${PARENT_HOST:-`hostname -I | cut -d' ' -f1`}
+
+  export DOCKER_API_VERSION=${DOCKER_API_VERSION:-1.23}
 
   # Default logging level for Mesos is INFO. No need to set.
   export MESOS_LOG_DIR=${MESOS_LOG_DIR:-/var/log/mesos}
   export MESOS_CONTAINERIZERS=${MESOS_CONTAINERIZERS:-"docker,mesos"}
+  export MESOS_HOSTNAME=${MESOS_HOSTNAME:-`hostname -I | cut -d' ' -f1`}
+  export MESOS_ADVERTISE_IP=${MESOS_ADVERTISE_IP:-`hostname -I | cut -d' ' -f1`}
+  export MESOS_ADVERTISE_PORT=${MESOS_ADVERTISE_PORT:-5051}
 
   export SERVICE_CONSUL_TEMPLATE=${SERVICE_CONSUL_TEMPLATE:-disabled} 
   export SERVICE_LOGROTATE_SCRIPT=${SERVICE_LOGROTATE_SCRIPT:-/opt/scripts/purge-mesos-logs.sh}
@@ -32,7 +37,7 @@ init_vars() {
   export SERVICE_MESOS_CMD=${SERVICE_MESOS_CMD:-mesos-slave}
 
   case "${ENVIRONMENT,,}" in
-    prod|production|dev|development)
+    prod|production|dev|development)                                mesos
       export GLOG_max_log_size=${GLOG_max_log_size:-10}
       export SERVICE_LOGROTATE=${SERVICE_LOGROTATE:-enabled}
       export SERVICE_LOGSTASH_FORWARDER=${SERVICE_LOGSTASH_FORWARDER:-enabled}
@@ -62,6 +67,35 @@ init_vars() {
   fi
 }
 
+__config_service_tcp_socket_proxy() {
+  case "${SERVICE_DOCKER_SOCKET_PROXY:-}" in
+    enabled)
+      if [[ -f /etc/supervisor/conf.d/docker_socket_proxy.disabled ]]; then
+        mv /etc/supervisor/conf.d/docker_socket_proxy.disabled /etc/supervisor/conf.d/docker_socket_proxy.conf
+      fi
+
+      export SERVICE_DOCKER_PROXY_HOST=${SERVICE_DOCKER_PROXY_HOST:-localhost:2376}
+      export MESOS_DOCKER_SOCKET=${MESOS_DOCKER_SOCKET:-/var/run/docker.sock}
+      export SERVICE_DOCKER_PROXY_CMD=${SERVICE_DOCKER_PROXY_CMD:-"socat -s -ly UNIX-LISTEN:$MESOS_DOCKER_SOCKET,fork,mode=0777 TCP:$SERVICE_DOCKER_PROXY_HOST"}
+
+      rm -f $MESOS_DOCKER_SOCKET
+      echo "[$(date)][Docker-Socket-Proxy-Template][Status] Enabled."
+      echo "[$(date)][Docker-Socket-Proxy-Template][Start-Command] $SERVICE_DOCKER_PROXY_CMD"
+      ;;
+    disabled|*)
+      if [[ "$SERVICE_DOCKER_SOCKET_PROXY" != "disabled" ]]; then
+        echo "[$(date)][Docker-Socket-Proxy-Template][Init] Unrecognized Option. Defaulting to disabled."
+      fi
+      if [[ -f /etc/supervisor/conf.d/docker_socket_proxy.conf ]]; then
+        mv /etc/supervisor/conf.d/docker_socket_proxy.conf /etc/supervisor/conf.d/docker_socket_proxy.disabled
+      fi
+      echo "[$(date)][Docker-Socket-Proxy-Template][Status] Disabled."
+      ;;
+  esac
+
+  return 0
+}
+
 main() {
 
   init_vars
@@ -69,11 +103,23 @@ main() {
   echo "[$(date)][App-Name] $APP_NAME"
   echo "[$(date)][Environment] $ENVIRONMENT"
 
+  service docker stop
+
+  __config_service_tcp_socket_proxy
   __config_service_consul_template
   __config_service_logrotate
   __config_service_logstash_forwarder
   __config_service_redpill
   __config_service_rsyslog
+
+
+#  if [[ "$DOCKER_LOGIN_ENABLED" == "true" ]]; then
+#    echo "[$(date)][Docker][Login] $DOCKER_LOGIN_USERNAME at $DOCKER_LOGIN_HOSTNAME"
+#    docker login --password $DOCKER_LOGIN_PASSWORD --username $DOCKER_LOGIN_USERNAME $DOCKER_LOGIN_HOSTNAME
+#  fi
+
+  mkdir -p $MESOS_SANDBOX_DIRECTORY
+  mkdir -p $MESOS_WORK_DIR
 
   echo "[$(date)][Mesos][Start-Command] $SERVICE_MESOS_CMD"
 
